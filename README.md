@@ -10,4 +10,5 @@ A lightweight Python scraper that:
 2. Run the scraper:
 ```bash
 python -m scraper.main
+```
 3. Output will be saved to data/output.csv
