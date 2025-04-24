@@ -9,5 +9,4 @@ def fetch_html(url):
         response.raise_for_status()
         return response.text
     except Exception as e:
-        print(f"[ERROR] Could not fetch {url}: {e}")
-        return None
+        return str(e)
