@@ -1,36 +1,34 @@
 from bs4 import BeautifulSoup
 import re
+from urllib.parse import urlparse
 
 def extract_info(html, url):
     soup = BeautifulSoup(html, 'html.parser')
     
-    # Extract the title
-    title = soup.title.string.strip() if soup.title else ''
-    
     # Extract hs_name from the title
+    title = soup.title.string.strip() if soup.title else ''
     hs_name = ''
+    
     if title:
-        # Match patterns like:
-        # "Micro-Internships for [Name]"
-        # "Recruit [Name] students with Micro-Internships"
-        # "Micro-Internships for students and recent grads of [Name]"
-        # "Micro-Internships for [Name], [Additional Info]"
-        # "The [Name] Micro-Internship Program"
-        # "Support [Name] Alumni with Micro-Internships"
-        # "Micro-Internships For On-Demand Project Support from [Name] Scholars"
-        # "[Name] Micro-Internships | Optimize Early-Career Hiring With Parker Dewey"
         match = re.search(
             r"(?:Micro-Internships For On-Demand Project Support from|Micro-Internships for|Recruit|The|Support|^(.+?) Micro-Internships) (?:students and recent grads of )?(?:from )?(.+?)(?: Scholars| (students|Student-Athletes|graduates|grads|Alumni with Micro-Internships|with Micro-Internships|Micro-Internship Program)|,|$)",
             title,
             re.IGNORECASE
         )
         if match:
-            # Check if the first group captures the institution name
             hs_name = match.group(1).strip() if match.group(1) else match.group(2).strip()
+
+    # Extract hs_path from the URL
+    parsed_url = urlparse(url)
+    path_parts = parsed_url.path.strip('/').split('/')
+    if len(path_parts) > 1 and path_parts[0] in ['employer', 'student']:
+        hs_path = path_parts[1]  # Use the second part for cases like /employer/cuw
+    else:
+        hs_path = path_parts[0]  # Use the first part for cases like /csun or /csun/featured
 
     return {
         'hs_name': hs_name,
-        'hs_path': '',  # Placeholder
+        'hs_path': hs_path,
         'partner_logo': '',  # Placeholder
         'partner_logo_width': '',  # Placeholder
         'partner_logo_height': '',  # Placeholder
