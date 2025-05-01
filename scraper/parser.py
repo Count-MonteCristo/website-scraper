@@ -36,6 +36,7 @@ def extract_info(html, url):
     partner_logo_orientation = ''
     partner_logo_url = ''
     img_tag = soup.find('img', class_='hs-image-widget')
+    
     if img_tag and img_tag.get('src'):
         partner_logo = img_tag['src']
         try:
@@ -66,6 +67,13 @@ def extract_info(html, url):
             # If the <a> tag exists but has no href, set to "N/A"
             partner_logo_url = "N/A"
 
+
+    # Extract featured_image from the <meta> tag with property="og:image"
+    featured_image = 'N/A'
+    meta_tag = soup.find('meta', property='og:image')
+    if meta_tag and meta_tag.get('content'):
+        featured_image = meta_tag['content']
+
     return {
         'hs_name': hs_name,
         'hs_path': hs_path,
@@ -76,5 +84,5 @@ def extract_info(html, url):
         'partner_logo_url': partner_logo_url,
         'primary_color': '',  # Placeholder
         'secondary_color': '',  # Placeholder
-        'featured_image': ''  # Placeholder
+        'featured_image': featured_image
     }
