@@ -34,6 +34,7 @@ def extract_info(html, url):
     partner_logo_width = ''
     partner_logo_height = ''
     partner_logo_orientation = ''
+    partner_logo_url = ''
     img_tag = soup.find('img', class_='hs-image-widget')
     if img_tag and img_tag.get('src'):
         partner_logo = img_tag['src']
@@ -53,6 +54,18 @@ def extract_info(html, url):
         except Exception as e:
             print(f"Error measuring image dimensions: {e}")
 
+    # Extract partner_logo_url from the <a> tag wrapping the <img> tag
+    if img_tag:
+        parent_a_tag = img_tag.find_parent('a')
+        if parent_a_tag and parent_a_tag.get('href'):
+            partner_logo_url = parent_a_tag['href']
+            # Normalize protocol-relative URLs
+            if partner_logo_url.startswith("//"):
+                partner_logo_url = "https:" + partner_logo_url
+        else:
+            # If the <a> tag exists but has no href, set to "N/A"
+            partner_logo_url = "N/A"
+
     return {
         'hs_name': hs_name,
         'hs_path': hs_path,
@@ -60,7 +73,7 @@ def extract_info(html, url):
         'partner_logo_width': partner_logo_width,
         'partner_logo_height': partner_logo_height,
         'partner_logo_orientation': partner_logo_orientation,
-        'partner_logo_url': '',  # Placeholder
+        'partner_logo_url': partner_logo_url,
         'primary_color': '',  # Placeholder
         'secondary_color': '',  # Placeholder
         'featured_image': ''  # Placeholder
