@@ -28,7 +28,7 @@ def main():
                 tqdm.write(f"{Fore.BLUE}[INFO] Extracting information from URL: {url}")
                 try:
                     info = extract_info(html, url)
-                    info['url'] = url
+                    info['url'] = url  # Add the URL to the extracted info
                     results.append(info)
                     tqdm.write(f"{Fore.GREEN}[INFO] Successfully extracted information for URL: {url}")
                 except Exception as e:
@@ -43,7 +43,11 @@ def main():
 
     if results:
         tqdm.write(f"\n{Fore.CYAN}[INFO] Writing results to './data/output.csv'...")
-        fieldnames = ['title', 'description', 'url', 'inline_style', 'h1_class', 'css_snippet']
+        fieldnames = [
+            'hs_name', 'hs_path', 'partner_logo', 'partner_logo_width',
+            'partner_logo_height', 'partner_logo_orientation', 'partner_logo_url',
+            'primary_color', 'secondary_color', 'featured_image','url'
+        ]
         with open('./data/output.csv', 'w', newline='', encoding='utf-8') as f:
             dict_writer = csv.DictWriter(f, fieldnames=fieldnames)
             dict_writer.writeheader()
