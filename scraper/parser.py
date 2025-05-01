@@ -1,6 +1,9 @@
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
+from PIL import Image
+from io import BytesIO
+import requests
 
 def extract_info(html, url):
     soup = BeautifulSoup(html, 'html.parser')
@@ -26,19 +29,37 @@ def extract_info(html, url):
     else:
         hs_path = path_parts[0]
 
-    # Extract partner_logo from the <img> tag
+    # Extract partner_logo and measure its dimensions using Pillow
     partner_logo = ''
+    partner_logo_width = ''
+    partner_logo_height = ''
+    partner_logo_orientation = ''
     img_tag = soup.find('img', class_='hs-image-widget')
     if img_tag and img_tag.get('src'):
         partner_logo = img_tag['src']
+        try:
+            # Download the image and measure its dimensions
+            response = requests.get(partner_logo, timeout=10)
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content))
+            partner_logo_width, partner_logo_height = img.size
+            # Determine orientation
+            if partner_logo_width > partner_logo_height:
+                partner_logo_orientation = 'horizontal'
+            elif partner_logo_width < partner_logo_height:
+                partner_logo_orientation = 'vertical'
+            else:
+                partner_logo_orientation = 'square'
+        except Exception as e:
+            print(f"Error measuring image dimensions: {e}")
 
     return {
         'hs_name': hs_name,
         'hs_path': hs_path,
         'partner_logo': partner_logo,
-        'partner_logo_width': '',  # Placeholder
-        'partner_logo_height': '',  # Placeholder
-        'partner_logo_orientation': '',  # Placeholder
+        'partner_logo_width': partner_logo_width,
+        'partner_logo_height': partner_logo_height,
+        'partner_logo_orientation': partner_logo_orientation,
         'partner_logo_url': '',  # Placeholder
         'primary_color': '',  # Placeholder
         'secondary_color': '',  # Placeholder
