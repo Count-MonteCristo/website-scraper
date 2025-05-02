@@ -1,9 +1,32 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
 from PIL import Image
+Image.MAX_IMAGE_PIXELS = 250_000_000
 from io import BytesIO
 import requests
+
+# Quick Selenium test
+def test_selenium():
+    try:
+        options = Options()
+        options.add_argument('--headless')  # Run in headless mode
+        driver = webdriver.Chrome(options=options)
+        driver.get("https://www.google.com")
+        print("Selenium test successful. Page title:", driver.title)
+        driver.quit()
+    except Exception as e:
+        print("Selenium test failed:", e)
+
+# Run the test
+test_selenium()
+
+def rgb_to_hex(rgb):
+    """Convert an RGB tuple to a HEX color."""
+    return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
 
 def extract_info(html, url):
     soup = BeautifulSoup(html, 'html.parser')
@@ -67,12 +90,76 @@ def extract_info(html, url):
             # If the <a> tag exists but has no href, set to "N/A"
             partner_logo_url = "N/A"
 
-
     # Extract featured_image from the <meta> tag with property="og:image"
     featured_image = 'N/A'
     meta_tag = soup.find('meta', property='og:image')
     if meta_tag and meta_tag.get('content'):
         featured_image = meta_tag['content']
+
+    # Use Selenium to extract the primary color
+    primary_color = ''
+    secondary_color = ''  # Placeholder for secondary color logic
+    try:
+        options = Options()
+        options.add_argument('--headless')  # Run in headless mode
+        driver = webdriver.Chrome(options=options)
+        driver.get(url)
+        
+        # Locate the target element for primary color
+        try:
+            banner_section = driver.find_element(By.CLASS_NAME, 'hnh-content')
+            background_image = driver.execute_script(
+                "return window.getComputedStyle(arguments[0]).getPropertyValue('background-image');",
+                banner_section
+            )
+            match = re.search(r'rgb\((\d+), (\d+), (\d+)\)', background_image)
+            if match:
+                rgb = tuple(map(int, match.groups()))
+                primary_color = rgb_to_hex(rgb)
+                print(f"[INFO] Extracted primary color from .hnh-content: {primary_color}")
+        except Exception:
+            print("[INFO] .hnh-content not found, checking .banner-section")
+
+        # Fallback to .banner-section if .hnh-content is not found
+        if not primary_color:
+            try:
+                banner_section = driver.find_element(By.CLASS_NAME, 'banner-section')
+                background_image = driver.execute_script(
+                    "return window.getComputedStyle(arguments[0]).getPropertyValue('background-image');",
+                    banner_section
+                )
+                match = re.search(r'rgb\((\d+), (\d+), (\d+)\)', background_image)
+                if match:
+                    rgb = tuple(map(int, match.groups()))
+                    primary_color = rgb_to_hex(rgb)
+                    print(f"[INFO] Extracted primary color from .banner-section: {primary_color}")
+            except Exception:
+                print("[INFO] .banner-section not found, checking .qicon")
+
+        # Fallback to .qicon if .banner-section is not found
+        if not primary_color:
+            try:
+                qicon_element = driver.find_element(By.CLASS_NAME, 'qicon')
+                background_color = driver.execute_script(
+                    "return window.getComputedStyle(arguments[0]).getPropertyValue('background');",
+                    qicon_element
+                )
+                match = re.search(r'rgba?\((\d+), (\d+), (\d+)', background_color)
+                if match:
+                    rgb = tuple(map(int, match.groups()))
+                    hex_color = rgb_to_hex(rgb)
+                    if hex_color in ['#ffffff', '#cccccc']:  # Check if the color is white or grey
+                        primary_color = secondary_color  # Use secondary color as fallback
+                        print("[INFO] Fallback to secondary color as primary color is white or grey.")
+                    else:
+                        primary_color = hex_color
+                        print(f"[INFO] Extracted primary color from .qicon: {primary_color}")
+            except Exception as e:
+                print(f"[INFO] .qicon not found or error extracting color: {e}")
+
+        driver.quit()
+    except Exception as e:
+        print(f"Error extracting primary color: {e}")
 
     return {
         'hs_name': hs_name,
@@ -82,7 +169,7 @@ def extract_info(html, url):
         'partner_logo_height': partner_logo_height,
         'partner_logo_orientation': partner_logo_orientation,
         'partner_logo_url': partner_logo_url,
-        'primary_color': '',  # Placeholder
-        'secondary_color': '',  # Placeholder
+        'primary_color': primary_color,
+        'secondary_color': secondary_color,  # Placeholder
         'featured_image': featured_image
     }
