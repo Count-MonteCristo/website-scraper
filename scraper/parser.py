@@ -9,21 +9,6 @@ Image.MAX_IMAGE_PIXELS = 250_000_000
 from io import BytesIO
 import requests
 
-# Quick Selenium test
-def test_selenium():
-    try:
-        options = Options()
-        options.add_argument('--headless')  # Run in headless mode
-        driver = webdriver.Chrome(options=options)
-        driver.get("https://www.google.com")
-        print("Selenium test successful. Page title:", driver.title)
-        driver.quit()
-    except Exception as e:
-        print("Selenium test failed:", e)
-
-# Run the test
-test_selenium()
-
 def rgb_to_hex(rgb):
     """Convert an RGB tuple to a HEX color."""
     return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
@@ -96,15 +81,68 @@ def extract_info(html, url):
     if meta_tag and meta_tag.get('content'):
         featured_image = meta_tag['content']
 
-    # Use Selenium to extract the primary color
+    # Use Selenium to extract the secondary color
+    secondary_color = ''
     primary_color = ''
-    secondary_color = ''  # Placeholder for secondary color logic
     try:
         options = Options()
         options.add_argument('--headless')  # Run in headless mode
         driver = webdriver.Chrome(options=options)
         driver.get(url)
         
+        try:
+            # Locate the button with the "question" class and extract the border color
+            try:
+                question_button = driver.find_element(By.CLASS_NAME, 'question')
+                border_color = driver.execute_script(
+                    "return window.getComputedStyle(arguments[0]).getPropertyValue('border-left-color');",
+                    question_button
+                )
+                match = re.search(r'rgb\((\d+), (\d+), (\d+)\)', border_color)
+                if match:
+                    rgb = tuple(map(int, match.groups()))
+                    secondary_color = rgb_to_hex(rgb)
+                    print(f"[INFO] Extracted secondary color from button border: {secondary_color}")
+            except Exception:
+                print("[INFO] 'question' button not found, checking 'cta_button'.")
+
+            # Fallback to the background color of the "cta_button" class
+            if not secondary_color:
+                try:
+                    cta_button = driver.find_element(By.CLASS_NAME, 'cta_button')
+                    background_color = driver.execute_script(
+                        "return window.getComputedStyle(arguments[0]).getPropertyValue('background-color');",
+                        cta_button
+                    )
+                    match = re.search(r'rgb\((\d+), (\d+), (\d+)\)', background_color)
+                    if match:
+                        rgb = tuple(map(int, match.groups()))
+                        secondary_color = rgb_to_hex(rgb)
+                        print(f"[INFO] Extracted secondary color from cta_button background: {secondary_color}")
+                except Exception:
+                    print("[INFO] 'cta_button' not found, checking 'hs-button'.")
+
+            # Fallback to the background color of the "hs-button" class
+            if not secondary_color:
+                try:
+                    hs_button = driver.find_element(By.CLASS_NAME, 'hs-button')
+                    background_color = driver.execute_script(
+                        "return window.getComputedStyle(arguments[0]).getPropertyValue('background-color');",
+                        hs_button
+                    )
+                    match = re.search(r'rgb\((\d+), (\d+), (\d+)\)', background_color)
+                    if match:
+                        rgb = tuple(map(int, match.groups()))
+                        secondary_color = rgb_to_hex(rgb)
+                        print(f"[INFO] Extracted secondary color from hs-button background: {secondary_color}")
+                except Exception as e:
+                    print(f"[INFO] 'hs-button' not found or error extracting color: {e}")
+                    secondary_color = "N/A"  # Return N/A if no secondary color is found
+        except Exception as e:
+            print(f"Error extracting secondary color: {e}")
+            secondary_color = "N/A"  # Return N/A if an unexpected error occurs
+
+        # Extract the primary color after defining the secondary color
         # Locate the target element for primary color
         try:
             banner_section = driver.find_element(By.CLASS_NAME, 'hnh-content')
@@ -159,7 +197,7 @@ def extract_info(html, url):
 
         driver.quit()
     except Exception as e:
-        print(f"Error extracting primary color: {e}")
+        print(f"Error extracting colors: {e}")
 
     return {
         'hs_name': hs_name,
@@ -170,6 +208,6 @@ def extract_info(html, url):
         'partner_logo_orientation': partner_logo_orientation,
         'partner_logo_url': partner_logo_url,
         'primary_color': primary_color,
-        'secondary_color': secondary_color,  # Placeholder
+        'secondary_color': secondary_color,
         'featured_image': featured_image
     }
