@@ -13,9 +13,95 @@ def rgb_to_hex(rgb):
     """Convert an RGB tuple to a HEX color."""
     return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
 
-def extract_info(html, url):
+def normalize_html(html):
+    """Normalize HTML by parsing and re-serializing it to ensure consistent formatting."""
+    return ''.join(BeautifulSoup(html, 'html.parser').stripped_strings)
+
+def extract_info(html, url, page_type='employer'):
     soup = BeautifulSoup(html, 'html.parser')
     
+    # Define default HTML structures for student pages
+    default_html_student_v1 = (
+        '<p style="font-size: 16px; text-align: left;">Students and recent graduates from all majors can gain real-world experience '
+        'by completing short-term, paid, typically-remote, professional projects. Micro-Internships allow you to build and '
+        'demonstrate skills while exploring potential career paths—all on your schedule.</p>'
+        '<p style="font-size: 16px; text-align: left;">These opportunities are available year-round and are offered by companies '
+        'of all sizes across the U.S., from Fortune 100 corporations to emerging startups. Micro-Internships move quickly, '
+        'so it’s important to log in regularly to see opportunities before they’re gone!</p>'
+        '<p style="font-size: 16px; text-align: left;">Micro-Internships are facilitated via the Parker Dewey platform, connecting '
+        'you with organizations in need of your skills.</p>'
+        '<p style="font-size: 16px; text-align: left;"><strong>After creating your free account on Parker Dewey, you\'ll not only '
+        'get access to Micro-Internships but also to tutorials, tips on landing projects, and resources to help you succeed. </strong></p>'
+    )
+
+    default_html_student_v2 = (
+        '<p style="font-size: 16px;"><span>Students and recent graduates from all majors can execute short-term, '
+        'paid, typically-remote, professional projects that allow you to build and demonstrate skills while exploring '
+        'potential career paths.</span></p>'
+        '<p style="font-size: 16px;">These Micro-Internships can take place at any time of year, and are used by companies '
+        'across the United States, ranging from those in the Fortune 100 to emerging start-ups.</p>'
+        '<p style="font-size: 16px;">Micro-Internships are facilitated via the Parker Dewey platform, which connects students '
+        'and recent graduates with organizations in need of support.</p>'
+    )
+
+    # Define default HTML structure for employer pages (variation 1 - no links)
+    default_html_employer_v1 = (
+        '<p style="font-size: 16px;">With Parker Dewey Micro-Internships, everybody wins!</p>'
+        '<p style="font-size: 16px;">Micro-Internships allow your company or organization to get on-demand, professional project support '
+        'from talented students and recent graduates without having to take on administrative burdens like processing payroll or managing tax forms.</p>'
+        '<p style="font-size: 16px;">Micro-Internships are also an easy, cost-effective, and<span>&nbsp;</span><strong><strong>proven method for accomplishing recruiting goals</strong></strong>, '
+        'as they allow organizations to engage early career talent in a way that is<span>&nbsp;</span><strong><strong>accessible and appealing to students</strong></strong>.</p>'
+    )
+
+    # Define default HTML structure for employer pages (variation 2 - with links)
+    default_html_employer_v2 = (
+        '<p style="font-size: 16px;">With Parker Dewey Micro-Internships, everybody wins!</p>'
+        '<p style="font-size: 16px;">Micro-Internships allow your company or organization to get on-demand, professional project support '
+        'from talented students and recent graduates without having to take on administrative burdens like processing payroll or managing tax forms.</p>'
+        '<p style="font-size: 16px;">Micro-Internships are also an easy, cost-effective, and<span>&nbsp;</span><strong><span style="text-decoration: underline;">'
+        '<a href="/hubfs/University%20Marketing%20Toolkit/Where%20Micro-Internships%20Fit%20For%20Employers%20-%20one%20page%20table.pdf" rel="noopener" style="color: #000000; text-decoration: underline;" target="_blank">'
+        '<strong>proven method for accomplishing recruiting goals</strong></a></span></strong>, as they allow organizations to engage early career talent in a way that is<span>&nbsp;</span><strong><span style="text-decoration: underline;">'
+        '<a href="https://www.parkerdewey.com/blog/2023-student-sentiments-on-campus-recruiting" rel="noopener" style="color: #000000; text-decoration: underline;" target="_blank">'
+        '<strong>accessible and appealing to students</strong></a></span></strong>.</p>'
+    )
+
+    # Extract intro text from the page
+    intro_text = ''
+    intro_section = soup.find('div', class_='two-columns-content-section')
+
+    # Fallback to class='banner-content' if class='two-columns-content-section' is not found
+    if not intro_section:
+        intro_section = soup.find('div', class_='banner-content')
+
+    if intro_section:
+        # Get all <p> elements and filter out those with only whitespace or non-breaking spaces
+        paragraphs = intro_section.find_all('p')
+        valid_paragraphs = [
+            p for p in paragraphs if p.get_text(strip=True)  # Only include <p> elements with actual text
+        ]
+        # Concatenate the HTML content of valid <p> elements
+        intro_text = ''.join(str(p) for p in valid_paragraphs)
+
+    # Compare intro text with default variations based on page type
+    intro_text_differs = "Yes"  # Default to "Yes"
+
+    # Normalize both the extracted intro_text and the default HTML templates
+    normalized_intro_text = normalize_html(intro_text)
+    normalized_default_html_employer_v2 = normalize_html(default_html_employer_v2)
+
+    if page_type == 'student' and (
+        normalized_intro_text == normalize_html(default_html_student_v1) or
+        normalized_intro_text == normalize_html(default_html_student_v2)
+    ):
+        intro_text = ''  # Leave empty if it matches either default variation
+        intro_text_differs = "No"  # Set to "No" if it matches a default variation
+    elif page_type == 'employer' and (
+        normalized_intro_text == normalize_html(default_html_employer_v1) or
+        normalized_intro_text == normalized_default_html_employer_v2
+    ):
+        intro_text = ''  # Leave empty if it matches either default variation
+        intro_text_differs = "No"  # Set to "No" if it matches a default variation
+
     # Extract hs_name from the title
     title = soup.title.string.strip() if soup.title else ''
     hs_name = ''
@@ -79,7 +165,7 @@ def extract_info(html, url):
     featured_image = 'N/A'
     meta_tag = soup.find('meta', property='og:image')
     if meta_tag and meta_tag.get('content'):
-        featured_image = meta_tag['content']
+        featured_image = meta_tag.get('content')
 
     # Use Selenium to extract the secondary color
     secondary_color = ''
@@ -209,5 +295,7 @@ def extract_info(html, url):
         'partner_logo_url': partner_logo_url,
         'primary_color': primary_color,
         'secondary_color': secondary_color,
-        'featured_image': featured_image
+        'featured_image': featured_image,
+        'intro_text': intro_text,
+        'intro_text_differs': intro_text_differs
     }

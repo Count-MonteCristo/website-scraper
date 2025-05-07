@@ -16,6 +16,13 @@ def main():
 
     tqdm.write(f"{Fore.CYAN}Starting the scraping process for {len(urls)} URLs...\n")
 
+    fieldnames = [
+        'hs_name', 'hs_path', 'partner_logo', 'partner_logo_width',
+        'partner_logo_height', 'partner_logo_orientation', 'partner_logo_url',
+        'primary_color', 'secondary_color', 'featured_image',
+        'intro_text_differs', 'intro_text', 'url'
+    ]
+
     with tqdm(total=len(urls), desc="Scraping Progress", unit="url", dynamic_ncols=True) as pbar:
         for url in urls:
             tqdm.write(f"\n{Fore.BLUE}[INFO] Starting processing for URL: {url}")
@@ -43,11 +50,6 @@ def main():
 
     if results:
         tqdm.write(f"\n{Fore.CYAN}[INFO] Writing results to './data/output.csv'...")
-        fieldnames = [
-            'hs_name', 'hs_path', 'partner_logo', 'partner_logo_width',
-            'partner_logo_height', 'partner_logo_orientation', 'partner_logo_url',
-            'primary_color', 'secondary_color', 'featured_image','url'
-        ]
         with open('./data/output.csv', 'w', newline='', encoding='utf-8') as f:
             dict_writer = csv.DictWriter(f, fieldnames=fieldnames)
             dict_writer.writeheader()
