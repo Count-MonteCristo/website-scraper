@@ -129,18 +129,20 @@ def extract_info(html, url, page_type='employer'):
     if meta_tag and meta_tag.get('content'):
         featured_image = meta_tag.get('content')
 
-    # Extract featured projects section
-    featured_projects_section = soup.find('div', class_='features-box-row')
-    featured_projects_html = str(featured_projects_section) if featured_projects_section else ''
+    # Extract featured projects section only for employer pages
+    standard_featured_project_list_differs = "N/A"  # Default to N/A
+    if page_type == 'employer':
+        featured_projects_section = soup.find('div', class_='features-box-row')
+        featured_projects_html = str(featured_projects_section) if featured_projects_section else ''
 
-    # Normalize and compare with the default featured projects
-    normalized_featured_projects_html = normalize_html(featured_projects_html)
-    normalized_default_featured_projects_html = normalize_html(default_featured_projects_html)
+        if featured_projects_html:  # Only compare if the section exists
+            normalized_featured_projects_html = normalize_html(featured_projects_html)
+            normalized_default_featured_projects_html = normalize_html(default_featured_projects_html)
 
-    if normalized_featured_projects_html == normalized_default_featured_projects_html:
-        standard_featured_project_list_differs = "No"
-    else:
-        standard_featured_project_list_differs = "Yes"
+            if normalized_featured_projects_html == normalized_default_featured_projects_html:
+                standard_featured_project_list_differs = "No"
+            else:
+                standard_featured_project_list_differs = "Yes"
 
     # Use Selenium to extract the secondary color
     secondary_color = ''
