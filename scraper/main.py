@@ -20,7 +20,7 @@ def main():
         'hs_name', 'hs_path', 'partner_logo', 'partner_logo_width',
         'partner_logo_height', 'partner_logo_orientation', 'partner_logo_url',
         'primary_color', 'secondary_color', 'featured_image',
-        'intro_text_differs', 'intro_text', 'url'
+        'intro_text_differs', 'intro_text', 'standard_featured_project_list_differs', 'url'
     ]
 
     with tqdm(total=len(urls), desc="Scraping Progress", unit="url", dynamic_ncols=True) as pbar:
