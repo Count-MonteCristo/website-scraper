@@ -258,6 +258,11 @@ def extract_info(html, url, page_type='employer'):
             except Exception as e:
                 print(f"[INFO] .qicon not found or error extracting color: {e}")
 
+        # Ensure primary color is set if it's empty but secondary color is available
+        if not primary_color and secondary_color:
+            primary_color = secondary_color
+            print("[INFO] Fallback to secondary color for primary color as primary color is empty.")
+
         driver.quit()
     except Exception as e:
         print(f"Error extracting colors: {e}")
