@@ -8,6 +8,13 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = 250_000_000
 from io import BytesIO
 import requests
+from .default_html import (
+    default_html_student_v1,
+    default_html_student_v2,
+    default_html_employer_v1,
+    default_html_employer_v2,
+    default_featured_projects_html
+)
 
 def rgb_to_hex(rgb):
     """Convert an RGB tuple to a HEX color."""
@@ -19,51 +26,6 @@ def normalize_html(html):
 
 def extract_info(html, url, page_type='employer'):
     soup = BeautifulSoup(html, 'html.parser')
-    
-    # Define default HTML structures for student pages
-    default_html_student_v1 = (
-        '<p style="font-size: 16px; text-align: left;">Students and recent graduates from all majors can gain real-world experience '
-        'by completing short-term, paid, typically-remote, professional projects. Micro-Internships allow you to build and '
-        'demonstrate skills while exploring potential career paths—all on your schedule.</p>'
-        '<p style="font-size: 16px; text-align: left;">These opportunities are available year-round and are offered by companies '
-        'of all sizes across the U.S., from Fortune 100 corporations to emerging startups. Micro-Internships move quickly, '
-        'so it’s important to log in regularly to see opportunities before they’re gone!</p>'
-        '<p style="font-size: 16px; text-align: left;">Micro-Internships are facilitated via the Parker Dewey platform, connecting '
-        'you with organizations in need of your skills.</p>'
-        '<p style="font-size: 16px; text-align: left;"><strong>After creating your free account on Parker Dewey, you\'ll not only '
-        'get access to Micro-Internships but also to tutorials, tips on landing projects, and resources to help you succeed. </strong></p>'
-    )
-
-    default_html_student_v2 = (
-        '<p style="font-size: 16px;"><span>Students and recent graduates from all majors can execute short-term, '
-        'paid, typically-remote, professional projects that allow you to build and demonstrate skills while exploring '
-        'potential career paths.</span></p>'
-        '<p style="font-size: 16px;">These Micro-Internships can take place at any time of year, and are used by companies '
-        'across the United States, ranging from those in the Fortune 100 to emerging start-ups.</p>'
-        '<p style="font-size: 16px;">Micro-Internships are facilitated via the Parker Dewey platform, which connects students '
-        'and recent graduates with organizations in need of support.</p>'
-    )
-
-    # Define default HTML structure for employer pages (variation 1 - no links)
-    default_html_employer_v1 = (
-        '<p style="font-size: 16px;">With Parker Dewey Micro-Internships, everybody wins!</p>'
-        '<p style="font-size: 16px;">Micro-Internships allow your company or organization to get on-demand, professional project support '
-        'from talented students and recent graduates without having to take on administrative burdens like processing payroll or managing tax forms.</p>'
-        '<p style="font-size: 16px;">Micro-Internships are also an easy, cost-effective, and<span>&nbsp;</span><strong><strong>proven method for accomplishing recruiting goals</strong></strong>, '
-        'as they allow organizations to engage early career talent in a way that is<span>&nbsp;</span><strong><strong>accessible and appealing to students</strong></strong>.</p>'
-    )
-
-    # Define default HTML structure for employer pages (variation 2 - with links)
-    default_html_employer_v2 = (
-        '<p style="font-size: 16px;">With Parker Dewey Micro-Internships, everybody wins!</p>'
-        '<p style="font-size: 16px;">Micro-Internships allow your company or organization to get on-demand, professional project support '
-        'from talented students and recent graduates without having to take on administrative burdens like processing payroll or managing tax forms.</p>'
-        '<p style="font-size: 16px;">Micro-Internships are also an easy, cost-effective, and<span>&nbsp;</span><strong><span style="text-decoration: underline;">'
-        '<a href="/hubfs/University%20Marketing%20Toolkit/Where%20Micro-Internships%20Fit%20For%20Employers%20-%20one%20page%20table.pdf" rel="noopener" style="color: #000000; text-decoration: underline;" target="_blank">'
-        '<strong>proven method for accomplishing recruiting goals</strong></a></span></strong>, as they allow organizations to engage early career talent in a way that is<span>&nbsp;</span><strong><span style="text-decoration: underline;">'
-        '<a href="https://www.parkerdewey.com/blog/2023-student-sentiments-on-campus-recruiting" rel="noopener" style="color: #000000; text-decoration: underline;" target="_blank">'
-        '<strong>accessible and appealing to students</strong></a></span></strong>.</p>'
-    )
 
     # Extract intro text from the page
     intro_text = ''
@@ -166,6 +128,19 @@ def extract_info(html, url, page_type='employer'):
     meta_tag = soup.find('meta', property='og:image')
     if meta_tag and meta_tag.get('content'):
         featured_image = meta_tag.get('content')
+
+    # Extract featured projects section
+    featured_projects_section = soup.find('div', class_='features-box-row')
+    featured_projects_html = str(featured_projects_section) if featured_projects_section else ''
+
+    # Normalize and compare with the default featured projects
+    normalized_featured_projects_html = normalize_html(featured_projects_html)
+    normalized_default_featured_projects_html = normalize_html(default_featured_projects_html)
+
+    if normalized_featured_projects_html == normalized_default_featured_projects_html:
+        standard_featured_project_list_differs = "No"
+    else:
+        standard_featured_project_list_differs = "Yes"
 
     # Use Selenium to extract the secondary color
     secondary_color = ''
@@ -297,5 +272,6 @@ def extract_info(html, url, page_type='employer'):
         'secondary_color': secondary_color,
         'featured_image': featured_image,
         'intro_text': intro_text,
-        'intro_text_differs': intro_text_differs
+        'intro_text_differs': intro_text_differs,
+        'standard_featured_project_list_differs': standard_featured_project_list_differs
     }
